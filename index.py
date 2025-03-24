@@ -4,59 +4,33 @@ from Models.QRCodeModel import QRCodeModel
 import io
 app = Flask(__name__)
 
-@app.route('/Index', methods=['GET'])
-def IndexAPI():
-    # Define QR Code properties using the model
-    qr_model = QRCodeModel(
-        content="https://www.example.com",
-        logo_path="logo.png",
-        text="Scan the QR code",
-        size=5,
-        border=1,
-        font_size=16,
-        font_family="arial.ttf",
-        fill_color="#000000",
-        back_color="#ffffff",
-        text_color="#000000"
-    )
-
-    # Generate QR Code (ensure this function returns bytes)
-    byte_array = GenerateQRCode(qr_model)
-
-    # Convert byte array to a BytesIO stream
-    qr_stream = io.BytesIO(byte_array)
-
-    # Reset stream position to the beginning
-    qr_stream.seek(0)
-
-    # Return the QR code image
-    return send_file(
-        qr_stream,
-        mimetype='image/png',
-        as_attachment=True,
-        download_name='qrcode.png'  # Corrected for Flask 2.x+
-    )
-
-@app.route('/GenerateQRCode', methods=['POST'])  # Fixed 'Post' -> 'POST'
+@app.route('/api/generateqrcode', methods=['POST'])  # Fixed 'Post' -> 'POST'
 def GenerateQRCodeAPI():
     try:
-        # Parse JSON input from request body
-        data = request.get_json()
+        # Parse form data from request
+        data = request.form
+        logo_file = request.files.get("Logo")  # Get file (if provided)
         if not data:
-            return jsonify({'error': 'Invalid JSON input'}), 400  # Return error for missing input
+            return jsonify({'error': 'Invalid form input'}), 400  # Return error for missing input
+
+         # Read logo file into memory (if provided)
+        logo_bytes = None
+        if logo_file:
+            logo_bytes = io.BytesIO(logo_file.read())  # Store image in memory
+            logo_bytes.seek(0)  # Reset stream position
 
         # Create QRCodeModel instance from received data
         qr_model = QRCodeModel(
-            content=data.get("content", None),
-            logo_path=data.get("logo_path", None),
-            text=data.get("text", None),
-            size=data.get("size", 5),
-            border=data.get("border", 1),
-            font_size=data.get("font_size", 16),
-            font_family=data.get("font_family", "arial.ttf"),
-            fill_color=data.get("fill_color", "#000000"),
-            back_color=data.get("back_color", "#ffffff"),
-            text_color=data.get("text_color", "#000000")
+            content=data.get("Content", None),
+            logo=logo_bytes,
+            text=data.get("Text", None),
+            size=int(data.get("Size", 5)),
+            border=int(data.get("Border", 1)),
+            fontSize=int(data.get("FontSize", 16)),
+            fontFamily=data.get("FontFamily", "arial.ttf"),
+            fillColor=data.get("FillColor", "#000000"),
+            backgroundColor=data.get("BackgroundColor", "#ffffff"),
+            textColor=data.get("TextColor", "#000000")
         )
 
         # Generate QR Code (ensure this function returns bytes)
